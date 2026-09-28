@@ -38,10 +38,11 @@ Obscured, have no axe rule at all.
 | [F-6](#f-6--placeholder-is-the-only-visible-label) | Placeholder is the only visible label            | 3.3.2 Labels or Instructions (A)         | Moderate | Manual   |
 
 Each finding is tracked by a test in
-[`tests/saucedemo.known-issues.spec.ts`](../tests/saucedemo.known-issues.spec.ts). The test asserts
-the **correct** behavior and is marked `test.fail()`. It passes while the defect exists, and it
-turns red with "expected to fail, but passed" the day the defect is fixed, which is the signal to
-remove the marker. Every expected failure was checked to fail on its defect assertion, not on setup.
+[`tests/saucedemo.known-issues.spec.ts`](../tests/saucedemo.known-issues.spec.ts). The test pins the
+**current** defective behavior and carries an `issue` annotation naming the finding. It passes while
+the defect exists and turns red the day the defect is fixed, which is the signal to flip it into a
+regression guard. It also turns red on any unrelated failure, such as a broken login, and each
+negative check sits behind a presence check so a renamed selector can't pass it.
 
 ---
 
@@ -60,7 +61,7 @@ remove the marker. Every expected failure was checked to fail on its defect asse
   on the cart icon.
 - **Recommendation:** The cart navigates, so make it a real link:
   `<a href="/cart.html" aria-label="Cart, 1 item">`. Drop `role="button"`.
-- **Tracked by:** `F-1 · the cart is reachable by keyboard`
+- **Tracked by:** `F-1 · the cart is not reachable by keyboard`
 
 ### F-2 · No visible focus indicator anywhere
 
@@ -75,7 +76,7 @@ remove the marker. Every expected failure was checked to fail on its defect asse
   [`login-button-focused.png`](evidence/login-button-focused.png). Same bytes, same pixels.
 - **Recommendation:** Add a global `:focus-visible { outline: 3px solid #132322; outline-offset: 2px; }`.
   The indicator needs at least 3:1 contrast against adjacent colors (SC 1.4.11).
-- **Tracked by:** `F-2 · the login button shows a visible focus indicator`
+- **Tracked by:** `F-2 · the login button shows no visible focus indicator`
 
 ### F-3 · Menu toggle hides its state
 
@@ -87,7 +88,7 @@ remove the marker. Every expected failure was checked to fail on its defect asse
   in the codebase.
 - **Impact:** Screen reader users aren't told whether the menu opened, or which content it controls.
 - **Recommendation:** `aria-expanded={isOpen}` and `aria-controls="<menu id>"` on the toggle.
-- **Tracked by:** `F-3 · the menu button exposes its expanded state`
+- **Tracked by:** `F-3 · the menu button does not expose its expanded state`
 
 ### F-7 · Focus moves behind the open menu
 
@@ -106,7 +107,7 @@ remove the marker. Every expected failure was checked to fail on its defect asse
   focus), and add `aria-modal="true"`. Alternatively, close the menu when focus leaves it.
 - **Why axe misses it:** axe-core has no rule for SC 2.4.11. This suite checks it with
   `isFocusEntirelyObscured()` in [`src/keyboard.ts`](../src/keyboard.ts).
-- **Tracked by:** `F-7 · focus never lands on a control hidden behind the open menu`
+- **Tracked by:** `F-7 · Tab moves focus onto a link hidden behind the open menu`
 
 ### F-4 · Closing the menu loses focus
 
@@ -119,8 +120,8 @@ remove the marker. Every expected failure was checked to fail on its defect asse
   start. Screen readers may announce nothing at all.
 - **Recommendation:** After the close transition ends, focus the toggle and make sure nothing blurs
   it afterwards.
-- **Tracked by:** `F-4 · closing the menu with Escape returns focus to its button`. The test waits
-  for the close animation to settle, so the brief 0 ms focus can't produce a false pass.
+- **Tracked by:** `F-4 · closing the menu with Escape drops focus to <body>`. The test waits for
+  the close animation to settle, so it reads where focus ends up, not the brief 0 ms stop.
 
 ### F-5 · Page titles are not headings
 
@@ -133,7 +134,7 @@ remove the marker. Every expected failure was checked to fail on its defect asse
   so they can't jump to content or learn the page structure.
 - **Recommendation:** `<h1 class="title">Products</h1>` (and the same on every page). On login, add
   an `h1` and change the credential boxes to `h2`.
-- **Tracked by:** `F-5 · the page title "Products" is a real heading`
+- **Tracked by:** `F-5 · the page title "Products" is not a heading`
 
 ### F-6 · Placeholder is the only visible label
 
@@ -146,7 +147,7 @@ remove the marker. Every expected failure was checked to fail on its defect asse
   of what a filled field is for. Placeholder text is also usually low-contrast.
 - **Recommendation:** Add a visible `<label for="user-name">Username</label>` for every field and keep
   the placeholder for examples only.
-- **Tracked by:** `F-6 · login fields have visible labels, not just placeholders`
+- **Tracked by:** `F-6 · login fields have placeholders but no visible labels`
 
 ---
 
@@ -177,12 +178,17 @@ runs against W3C's deliberately broken demo and its repaired twin:
 | Survey | `image-alt` (24) · `label` (11) · `link-name` (4) · `select-name` (2) · `html-has-lang` · `target-size` (2)     | `target-size` (2)  |
 
 The repaired site passes everything **except** `target-size`, which is
-**F-8**: the demo predates WCAG 2.2 and SC 2.5.8 Target Size (Minimum). The after-site tests disable
-only that rule, with a comment pointing here, and a separate `test.fail()` test tracks the gap.
+**F-8**: the demo predates WCAG 2.2 and SC 2.5.8 Target Size (Minimum). No rule is disabled. Each
+after-page test pins `target-size` as the only rule that fails, so a new violation or the fix of
+this one both turn it red.
 
 [`tests/scanner-selftest.spec.ts`](../tests/scanner-selftest.spec.ts) also plants one defect at a time
-into a clean page (`label`, `html-has-lang`, `button-name`, `image-alt`, `color-contrast`) and requires
-the scanner to name each rule. That guards against a vacuous pass, where axe scans a blank or wrong DOM.
+into a clean page (`label`, `html-has-lang`, `button-name`, `image-alt`, `color-contrast`,
+`autocomplete-valid`) and requires the `expectNoViolations()` gate to reject each one, naming the rule
+and its impact. The plants mix critical and serious impacts and span WCAG 2.0 and 2.1 tags, so a gate
+that filters by impact or drops a tag fails the self-test. That guards against a vacuous pass, where
+axe scans a blank or wrong DOM. The same file checks that `exclude` skips a region and that axe's
+needs-review results are counted in an `axe-incomplete` annotation rather than failing the gate.
 
 ## Not covered (known limits)
 

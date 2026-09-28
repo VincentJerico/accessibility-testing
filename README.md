@@ -43,11 +43,11 @@ Each finding has evidence, reproduction steps, a recommended fix, and a **tracki
 
 | Layer                  | Where                                  | What it proves                                                                               |
 | ---------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Scanner self-test**  | `tests/scanner-selftest.spec.ts`       | axe really detects planted defects, so a green run can't be a vacuous pass                   |
-| **Scanner validation** | `tests/w3c-bad.spec.ts`                | Catches W3C's broken demo and passes its repaired twin                                       |
-| **Automated scan**     | `tests/saucedemo.axe.spec.ts`          | WCAG 2.2 AA axe scan of 8 pages **and interactive states** (errors, open menu)               |
+| **Scanner self-test**  | `tests/scanner-selftest.spec.ts`       | The gate rejects planted defects by rule name, so a green run can't be a vacuous pass        |
+| **Scanner validation** | `tests/w3c-bad.spec.ts`                | Catches W3C's broken demo; its repaired twin fails only `target-size` (F-8)                  |
+| **Automated scan**     | `tests/saucedemo.axe.spec.ts`          | WCAG 2.2 AA axe scan of each page **and its interactive states** (errors, open menu)         |
 | **Keyboard & ARIA**    | `tests/saucedemo.keyboard.spec.ts`     | Regression guards for what works: tab order, Enter, `role="alert"`, landmarks, ARIA snapshot |
-| **Known issues**       | `tests/saucedemo.known-issues.spec.ts` | One `test.fail()` per finding; it flags an unexpected pass when the defect is fixed          |
+| **Known issues**       | `tests/saucedemo.known-issues.spec.ts` | One test per finding pins today's defect; it goes red when the defect is fixed               |
 
 ### Design decisions
 
@@ -56,8 +56,8 @@ Each finding has evidence, reproduction steps, a recommended fix, and a **tracki
   rules aren't conformance requirements.
 - **An audit trail on every scan.** `expectNoViolations()` attaches the full axe JSON to the test
   report. On failure, the message lists each rule with its impact, help URL and sample nodes.
-- **Rules are disabled only with a reason.** The one disabled rule (`target-size` on the W3C demo)
-  has an inline comment and its own tracking test (F-8).
+- **No rule is disabled.** The W3C demo's `target-size` gap (F-8) is pinned as the only rule its
+  repaired pages fail, instead of being switched off.
 - **Checks that axe can't do.** `isFocusEntirelyObscured()` samples `elementFromPoint` at the focused
   element's corners and centre to test **SC 2.4.11**, which has no axe rule.
 - **No timing-based flakes.** Menu tests wait for the slide transition to finish
