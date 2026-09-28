@@ -1,0 +1,41 @@
+{
+  "name": "accessibility-testing",
+  "version": "1.0.0",
+  "description": "Automated + keyboard accessibility testing (WCAG 2.2 AA) with Playwright and axe-core, with a documented audit of real findings.",
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:axe": "playwright test --grep @axe",
+    "test:keyboard": "playwright test --grep @keyboard",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "keywords": [
+    "accessibility",
+    "a11y",
+    "wcag",
+    "axe-core",
+    "playwright",
+    "keyboard-testing",
+    "qa"
+  ],
+  "author": "Vincent Jerico",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^22.0.0",
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.9",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.1"
+  }
+}
