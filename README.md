@@ -10,9 +10,11 @@
 Automated **and** keyboard accessibility testing against **WCAG 2.2 AA**, using Playwright and
 axe-core, plus a documented audit of real findings.
 
-> **Headline result:** axe-core found **0 violations** on every [SauceDemo](https://www.saucedemo.com)
-> page. The keyboard and manual audit found **7 WCAG failures**, including one that stops a
-> keyboard-only user from checking out. → [Read the audit](docs/FINDINGS.md)
+> **Headline result:** axe-core's WCAG-tagged rules found **0 violations** on every
+> [SauceDemo](https://www.saucedemo.com) page. The keyboard and manual audit found **7 WCAG
+> failures**, including one that stops a keyboard-only user from checking out. axe's best-practice
+> rule `page-has-heading-one`, which the WCAG gate leaves out, does flag F-5.
+> → [Read the audit](docs/FINDINGS.md)
 
 Automated scanners catch roughly 30–40% of accessibility issues. This repo covers that part and
 then tests what the scanner can't: keyboard reachability, visible focus, focus order and restoration,
@@ -61,8 +63,7 @@ Each finding has evidence, reproduction steps, a recommended fix, and a **tracki
 - **Checks that axe can't do.** `isFocusEntirelyObscured()` samples `elementFromPoint` at the focused
   element's corners and centre to test **SC 2.4.11**, which has no axe rule.
 - **No timing-based flakes.** Menu tests wait for the slide transition to finish
-  (`getAnimations()`), so focus and geometry are read on a stable DOM. The suite passed 99/99 across
-  3 repeated runs against the live sites.
+  (`getAnimations()`), so focus and geometry are read on a stable DOM, not mid-transition.
 - **Chromium only.** axe results depend on the DOM, not the browser. Keyboard focus behavior differs
   between browsers (Safari skips links on Tab by default), so a single engine keeps the audit
   deterministic.
@@ -85,7 +86,7 @@ import { test } from '@playwright/test';
 import { expectNoViolations } from '../src/a11y.js';
 
 test('checkout is accessible with a validation error shown', async ({ page }, testInfo) => {
-  await page.goto('/checkout');
+  await page.goto('https://shop.example.com/checkout');
   await page.getByRole('button', { name: 'Continue' }).click(); // scan the error state too
   await expectNoViolations(page, testInfo, { exclude: ['#third-party-chat'] });
 });

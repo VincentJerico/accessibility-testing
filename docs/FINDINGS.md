@@ -11,8 +11,9 @@
 
 ## Summary
 
-**axe-core reported 0 violations on all 8 SauceDemo pages and states. The manual and keyboard audit
-found 7 WCAG failures, including one that stops a keyboard-only user from checking out.**
+**axe-core's WCAG-tagged rules reported 0 violations on every SauceDemo page and interactive state
+scanned. The manual and keyboard audit found 7 WCAG failures, including one that stops a
+keyboard-only user from checking out.**
 
 That gap is the reason this audit exists. Automated scanning checks markup (names, roles, contrast,
 labels in the accessibility tree). It cannot tell whether a control is reachable, whether focus is
@@ -129,6 +130,9 @@ remove the marker. Every expected failure was checked to fail on its defect asse
 - **Observed:** The visual page titles "Products", "Your Cart" and "Checkout: Your Information" are
   `<span class="title">`, and the "Swag Labs" logo is a `<div>`. The inventory, cart and checkout pages
   have **zero** heading elements. The login page has only two `<h4>`s, with no `h1`–`h3`.
+- **What axe sees:** axe's WCAG-tagged rules pass these pages. The best-practice rule
+  `page-has-heading-one` does flag the inventory page, but best-practice rules are outside the WCAG
+  2.2 AA tag set this suite gates on.
 - **Impact:** Screen reader users navigate by headings (the H key, the rotor). Here they get nothing,
   so they can't jump to content or learn the page structure.
 - **Recommendation:** `<h1 class="title">Products</h1>` (and the same on every page). On login, add
@@ -191,7 +195,11 @@ the scanner to name each rule. That guards against a vacuous pass, where axe sca
 - **Zoom and reflow** (1.4.4, 1.4.10) and **text spacing** (1.4.12) were not tested.
 - **Mobile and touch**, including target sizes on SauceDemo at small viewports, were not tested.
 - **Contrast** was checked only by axe, which is reliable on solid backgrounds. Text over the product
-  images was not checked.
+  images was not checked. On the inventory page axe returned 3 `color-contrast` nodes as
+  _needs review_ (incomplete), neither pass nor fail, and they were not reviewed by hand: the sort
+  dropdown's `.active_option` label and the sort `<select>` (background hidden by a pseudo-element),
+  and the Sauce Labs Onesie description (it overlaps other elements). They are in each scan's
+  attached axe JSON.
 - **2.5.7 Dragging Movements** does not apply: there is no drag interaction.
 - **Observation (not scored):** every page has the same `<title>`, "Swag Labs", so the title doesn't
   describe each page (borderline for 2.4.2 Page Titled). It is worth fixing alongside F-5.
