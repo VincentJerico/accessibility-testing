@@ -61,8 +61,7 @@ Each finding has evidence, reproduction steps, a recommended fix, and a **tracki
 - **Checks that axe can't do.** `isFocusEntirelyObscured()` samples `elementFromPoint` at the focused
   element's corners and centre to test **SC 2.4.11**, which has no axe rule.
 - **No timing-based flakes.** Menu tests wait for the slide transition to finish
-  (`getAnimations()`), so focus and geometry are read on a stable DOM. The suite passed 99/99 across
-  3 repeated runs against the live sites.
+  (`getAnimations()`), so focus and geometry are read on a stable DOM, not mid-transition.
 - **Chromium only.** axe results depend on the DOM, not the browser. Keyboard focus behavior differs
   between browsers (Safari skips links on Tab by default), so a single engine keeps the audit
   deterministic.
