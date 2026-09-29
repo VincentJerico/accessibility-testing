@@ -9,13 +9,8 @@ import { AxeBuilder } from '@axe-core/playwright';
 export const WCAG22_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
 
 export interface ScanOptions {
-  /** Scope the scan to one region (CSS selector). */
-  include?: string;
   /** Skip regions you don't own, e.g. third-party widgets. */
   exclude?: string[];
-  /** Disable rules — only with a documented justification next to the call. */
-  disableRules?: string[];
-  tags?: string[];
 }
 
 export interface Violation {
@@ -30,10 +25,8 @@ export interface Violation {
 type AxeResults = Awaited<ReturnType<AxeBuilder['analyze']>>;
 
 async function runAxe(page: Page, options: ScanOptions): Promise<AxeResults> {
-  let builder = new AxeBuilder({ page }).withTags(options.tags ?? WCAG22_AA);
-  if (options.include) builder = builder.include(options.include);
+  let builder = new AxeBuilder({ page }).withTags(WCAG22_AA);
   for (const selector of options.exclude ?? []) builder = builder.exclude(selector);
-  if (options.disableRules?.length) builder = builder.disableRules(options.disableRules);
   return builder.analyze();
 }
 
@@ -68,6 +61,8 @@ export async function scan(page: Page, options: ScanOptions = {}): Promise<Viola
 /**
  * Gate: fail the test if axe finds any WCAG 2.2 AA violation. The full axe results are attached
  * to the test report as an audit trail, and the failure message lists each rule with sample nodes.
+ * Results axe could not decide ("needs review") don't fail the gate; they are counted in an
+ * `axe-incomplete` annotation so a manual check isn't silently skipped.
  */
 export async function expectNoViolations(
   page: Page,
@@ -79,6 +74,12 @@ export async function expectNoViolations(
     body: JSON.stringify(results, null, 2),
     contentType: 'application/json',
   });
+  if (results.incomplete.length > 0) {
+    testInfo.annotations.push({
+      type: 'axe-incomplete',
+      description: results.incomplete.map((r) => `${r.id} (${r.nodes.length})`).join(', '),
+    });
+  }
   const violations = toViolations(results);
   expect(violations, `WCAG 2.2 AA violations:\n${describe(violations)}`).toEqual([]);
 }
