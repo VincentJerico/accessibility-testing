@@ -71,9 +71,8 @@ test.describe('Scanner self-test @axe', () => {
       ),
     );
     await expectNoViolations(page, testInfo);
-    expect(testInfo.annotations).toContainEqual({
-      type: 'axe-incomplete',
-      description: 'color-contrast (1)',
-    });
+    // Match the rule, not the exact list: newer axe versions may flag more nodes or rules here.
+    const incomplete = testInfo.annotations.find((a) => a.type === 'axe-incomplete');
+    expect(incomplete?.description).toMatch(/\bcolor-contrast \(\d+\)/);
   });
 });
