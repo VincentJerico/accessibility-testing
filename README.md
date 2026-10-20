@@ -7,18 +7,17 @@
 ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?logo=playwright&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
 
-Automated **and** keyboard accessibility testing against **WCAG 2.2 AA**, using Playwright and
-axe-core, plus a documented audit of real findings.
+Automated and keyboard accessibility testing against WCAG 2.2 AA, using Playwright and axe-core,
+with a written audit of what it found.
 
-> **Headline result:** axe-core's WCAG-tagged rules found **0 violations** on every
-> [SauceDemo](https://www.saucedemo.com) page. The keyboard and manual audit found **7 WCAG
-> failures**, including one that stops a keyboard-only user from checking out. axe's best-practice
-> rule `page-has-heading-one`, which the WCAG gate leaves out, does flag F-5.
-> → [Read the audit](docs/FINDINGS.md)
+> axe-core's WCAG rules found 0 violations on every [SauceDemo](https://www.saucedemo.com) page. The
+> keyboard and manual audit found 7 WCAG failures, including one that stops a keyboard-only user from
+> checking out. (axe's best-practice rule `page-has-heading-one`, which the WCAG gate leaves out, does
+> flag F-5.) [Read the audit](docs/FINDINGS.md).
 
-Automated scanners catch roughly 30–40% of accessibility issues. This repo covers that part and
-then tests what the scanner can't: keyboard reachability, visible focus, focus order and restoration,
-focus hidden behind overlays, ARIA state, and semantic structure.
+Automated scanners catch roughly 30 to 40% of accessibility issues. This repo covers that part, then
+tests what a scanner can't: whether you can reach things by keyboard, whether focus is visible,
+where focus goes and comes back to, focus hidden behind overlays, ARIA state and page structure.
 
 ## Findings at a glance
 
