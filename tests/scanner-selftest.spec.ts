@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
-import { scan } from '../src/a11y.js';
+import { expectNoViolations } from '../src/a11y.js';
 
 /**
  * Guards against vacuous passes: an a11y suite that's green because axe scanned a blank page or a
- * redirect is worse than none. Plant known defects into a clean page and require each one to be
- * caught — and require the clean page itself to pass.
+ * redirect is worse than none. Plant known defects of mixed impact into a clean page and require
+ * the gate to reject each one by rule name — and require it to pass the clean page itself.
  */
 const CLEAN = `<!doctype html>
 <html lang="en">
@@ -19,36 +19,60 @@ const CLEAN = `<!doctype html>
   </body>
 </html>`;
 
-const PLANTED: [rule: string, html: string][] = [
-  ['label', CLEAN.replace('<label for="email">Email</label>', '')],
-  ['html-has-lang', CLEAN.replace(' lang="en"', '')],
-  ['button-name', CLEAN.replace('>Send</button>', '></button>')],
-  [
-    'image-alt',
-    CLEAN.replace(
-      '<h1>Contact us</h1>',
-      '<h1>Contact us</h1><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" />',
-    ),
-  ],
+const IMG = '<img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" />';
+
+const PLANTED: [rule: string, impact: string, html: string][] = [
+  ['label', 'critical', CLEAN.replace('<label for="email">Email</label>', '')],
+  ['html-has-lang', 'serious', CLEAN.replace(' lang="en"', '')],
+  ['button-name', 'critical', CLEAN.replace('>Send</button>', '></button>')],
+  ['image-alt', 'critical', CLEAN.replace('<h1>Contact us</h1>', `<h1>Contact us</h1>${IMG}`)],
   [
     'color-contrast',
+    'serious',
     CLEAN.replace(
       '<h1>Contact us</h1>',
       '<h1>Contact us</h1><p style="color:#ccc;background:#fff">Hard to read</p>',
     ),
   ],
+  // A WCAG 2.1 rule, so the gate can't silently drop the wcag21a/wcag21aa tags.
+  [
+    'autocomplete-valid',
+    'serious',
+    CLEAN.replace('type="email" />', 'type="email" autocomplete="nonsense" />'),
+  ],
 ];
 
 test.describe('Scanner self-test @axe', () => {
-  test('a clean page has no violations', async ({ page }) => {
+  test('the gate passes a clean page', async ({ page }, testInfo) => {
     await page.setContent(CLEAN);
-    expect(await scan(page)).toEqual([]);
+    await expectNoViolations(page, testInfo);
   });
 
-  for (const [rule, html] of PLANTED) {
-    test(`a planted "${rule}" defect is detected`, async ({ page }) => {
+  for (const [rule, impact, html] of PLANTED) {
+    test(`the gate rejects a planted ${impact} "${rule}" defect`, async ({ page }, testInfo) => {
       await page.setContent(html);
-      expect((await scan(page)).map((v) => v.rule)).toContain(rule);
+      await expect(expectNoViolations(page, testInfo)).rejects.toThrow(`• [${impact}] ${rule} — `);
     });
   }
+
+  test('the gate skips an excluded region', async ({ page }, testInfo) => {
+    await page.setContent(CLEAN.replace('</main>', `</main><div id="third-party">${IMG}</div>`));
+    await expect(expectNoViolations(page, testInfo)).rejects.toThrow('image-alt');
+    await expectNoViolations(page, testInfo, { exclude: ['#third-party'] });
+  });
+
+  test('the gate counts needs-review results without failing on them', async ({
+    page,
+  }, testInfo) => {
+    await page.setContent(
+      CLEAN.replace(
+        '<h1>Contact us</h1>',
+        '<h1>Contact us</h1><p style="color:#777;background-image:linear-gradient(#fff,#eee)">Over a gradient</p>',
+      ),
+    );
+    await expectNoViolations(page, testInfo);
+    // Match the rule, not the exact list: newer axe versions may flag more nodes or rules here.
+    const incomplete = testInfo.annotations.find((a) => a.type === 'axe-incomplete');
+    expect(incomplete?.description).toMatch(/\bcolor-contrast \(\d+\)/);
+  });
 });

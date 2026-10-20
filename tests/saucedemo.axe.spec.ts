@@ -11,6 +11,7 @@ import { SAUCE } from '../src/targets.js';
 test.describe('SauceDemo — automated scan @axe', () => {
   test('login', async ({ page }, testInfo) => {
     await page.goto(SAUCE.url);
+    await expect(page.getByRole('button', { name: 'Login' })).toBeVisible();
     await expectNoViolations(page, testInfo);
   });
 

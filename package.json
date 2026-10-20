@@ -9,7 +9,7 @@
     "test:keyboard": "playwright test --grep @keyboard",
     "report": "playwright show-report",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
@@ -33,6 +33,7 @@
     "@playwright/test": "^1.63.0",
     "@types/node": "^22.0.0",
     "eslint": "^10.11.0",
+    "eslint-plugin-playwright": "^2.12.0",
     "globals": "^17.12.0",
     "prettier": "^3.9.9",
     "typescript": "^5.9.3",

@@ -65,6 +65,7 @@ test.describe('SauceDemo — keyboard & semantics that work @keyboard', () => {
     await page.goto(SAUCE.url);
     await expect(page.locator('form')).toMatchAriaSnapshot(`
       - form "Login":
+        - /children: equal
         - textbox "Username"
         - textbox "Password"
         - button "Login"
