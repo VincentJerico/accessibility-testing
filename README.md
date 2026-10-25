@@ -1,4 +1,9 @@
-# Accessibility Testing
+<h1>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/banner-dark.svg" />
+  <img alt="Accessibility Testing: WCAG 2.2 AA on SauceDemo, with axe-core and a keyboard audit" src=".github/assets/banner-light.svg" width="100%" />
+</picture>
+</h1>
 
 [![CI](https://github.com/VincentJerico/accessibility-testing/actions/workflows/ci.yml/badge.svg)](https://github.com/VincentJerico/accessibility-testing/actions/workflows/ci.yml)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
@@ -6,6 +11,8 @@
 ![axe-core](https://img.shields.io/badge/axe--core-4.13-663399)
 ![Playwright](https://img.shields.io/badge/Playwright-2EAD33?logo=playwright&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+
+<sub>QA portfolio: [01 journey](https://github.com/VincentJerico/qa-engineering-journey) · [02 framework](https://github.com/VincentJerico/playwright-framework-template) · [03 api](https://github.com/VincentJerico/api-testing-framework) · [04 taskflow](https://github.com/VincentJerico/taskflow-under-test) · **05 accessibility** · [06 security](https://github.com/VincentJerico/security-testing) · [07 performance](https://github.com/VincentJerico/performance-testing) · [profile](https://github.com/VincentJerico)</sub>
 
 Automated and keyboard accessibility testing against WCAG 2.2 AA, using Playwright and axe-core,
 with a written audit of what it found.
