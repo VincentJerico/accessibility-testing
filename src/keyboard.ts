@@ -51,3 +51,73 @@ export async function isFocusEntirelyObscured(page: Page): Promise<boolean> {
     });
   });
 }
+
+/** Wait for finite CSS transitions/animations, so focus styles are read when they've settled. */
+async function settle(page: Page): Promise<void> {
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+        .map((a) => a.finished.catch(() => undefined)),
+    ),
+  );
+}
+
+export interface TabStop {
+  description: string;
+  /** False when the element looks the same focused and unfocused (WCAG 2.4.7). */
+  focusVisible: boolean;
+}
+
+/**
+ * Walk the page with Tab, up to `maxStops` distinct elements, and check each one shows a visible
+ * focus indicator: a screenshot of the element plus a margin (outlines are drawn outside the box)
+ * must differ between focused and blurred. Also reports a keyboard trap (WCAG 2.1.2): Tab pressed
+ * three times in a row without focus moving, while the page has more than one focusable element.
+ * Generic on purpose, for the reusable gate: it knows nothing about the page under test.
+ */
+export async function walkTabStops(
+  page: Page,
+  maxStops = 15,
+): Promise<{ stops: TabStop[]; trapped?: string }> {
+  const stops: TabStop[] = [];
+  const seen: unknown[] = [];
+  let stuck = 0;
+  for (let press = 0; press < maxStops * 3 && stops.length < maxStops; press++) {
+    await page.keyboard.press('Tab');
+    const handle = await page.evaluateHandle(() => document.activeElement);
+    const isBody = await handle.evaluate((el) => el === null || el === document.body);
+    if (isBody) continue;
+
+    const matches = await Promise.all(
+      seen.map((s) => handle.evaluate((el, other) => el === other, s)),
+    );
+    if (matches.at(-1)) {
+      // Tab left focus where it was. A real page moves on (or out to the browser UI, i.e. <body>).
+      if (++stuck >= 2) return { stops, trapped: await describeFocus(page) };
+      continue;
+    }
+    if (matches.includes(true)) break; // back at an earlier stop: the walk wrapped around
+    stuck = 0;
+    seen.push(handle);
+
+    await settle(page);
+    const box = await handle.asElement()?.boundingBox();
+    if (!box || box.width === 0 || box.height === 0) continue;
+    const pad = 8;
+    const clip = {
+      x: Math.max(0, box.x - pad),
+      y: Math.max(0, box.y - pad),
+      width: box.width + pad * 2,
+      height: box.height + pad * 2,
+    };
+    const focused = await page.screenshot({ clip });
+    await handle.evaluate((el) => (el as HTMLElement).blur());
+    await settle(page);
+    const blurred = await page.screenshot({ clip });
+    await handle.evaluate((el) => (el as HTMLElement).focus());
+    stops.push({ description: await describeFocus(page), focusVisible: !focused.equals(blurred) });
+  }
+  return { stops };
+}

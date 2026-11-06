@@ -98,10 +98,17 @@ accessibility-testing/
 ├── playwright.config.ts
 ├── src/
 │   ├── a11y.ts          # axe wrapper: WCAG 2.2 AA tags, scan(), expectNoViolations()
-│   ├── keyboard.ts      # reachableByTab(), isFocusEntirelyObscured(), describeFocus()
+│   ├── keyboard.ts      # reachableByTab(), isFocusEntirelyObscured(), walkTabStops()
 │   ├── saucedemo.ts     # login, keyboard menu helpers
-│   └── targets.ts       # sites under test
-├── tests/               # self-test · W3C validation · axe · keyboard · known issues
+│   ├── targets.ts       # sites under test
+│   ├── summary.ts       # the run summary every automation step reads
+│   ├── report.ts        # summary -> markdown (job summary, PR comment)
+│   └── issues.ts        # summary -> which regression issues to open, update or close
+├── reporters/
+│   └── summary-reporter.ts  # writes reports/a11y-summary.json after every run
+├── gate/                # the reusable gate: spec, config, fixture pages, self-test
+├── scripts/             # CI glue: report, PR comment, regression issues, results page
+├── tests/               # self-tests · W3C validation · axe · keyboard · known issues
 └── docs/
     ├── FINDINGS.md      # the audit report
     └── evidence/        # screenshots referenced by findings
@@ -110,9 +117,56 @@ accessibility-testing/
 ## CI
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs **lint · format · typecheck**, then the
-accessibility suite in Chromium. The HTML report is uploaded as an artifact. It runs on every push and
-PR, and **weekly** as well, because both sites under test are live and can change without this repo
-changing.
+accessibility suite in Chromium. It runs on every push and PR, and **weekly** as well, because both
+sites under test are live and can change without this repo changing.
+
+Every run writes `reports/a11y-summary.json` (status, finding ID, axe violations and error per
+test), and the rest of the automation reads that one file:
+
+| Job               | What it does                                                                                                                                                                                                              | When                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Accessibility     | Runs the suite, writes the results table to the job summary, uploads the HTML report                                                                                                                                      | Every run                                                          |
+| PR comment        | Posts the same table on the PR as one comment, updated in place on each push                                                                                                                                              | Pull requests                                                      |
+| Regression issues | Opens an issue per newly failing test, comments when the failure changes, closes it when the test passes again. A broken pin (F-1 ... F-8) gets its own title, because it means the defect was fixed or the page changed. | Weekly and manual runs of `main`; a dry run elsewhere              |
+| Results page      | Publishes the latest run, a run-over-run trend and the Playwright report to GitHub Pages                                                                                                                                  | Runs of `main`, once Pages is on (repo variable `A11Y_PAGES=true`) |
+| Gate self-test    | Proves the reusable gate fails a planted-bad page for the planted reasons and passes a clean one                                                                                                                          | Every run                                                          |
+| Reusable gate     | Calls the gate the way another repo would, against the clean fixture                                                                                                                                                      | Every run                                                          |
+
+The regression planner only touches issues labelled `a11y-automation`, ignores flaky passes, and
+never closes an issue because a test didn't run, so a filtered or partial run can't close anything.
+Its decisions are pinned by `tests/automation-selftest.spec.ts`.
+
+## Use it as a gate in another repo
+
+The same checks run as a reusable workflow, so any repo can gate its own pages on WCAG 2.2 AA:
+
+```yaml
+jobs:
+  a11y:
+    uses: VincentJerico/accessibility-testing/.github/workflows/a11y-gate.yml@main
+    with:
+      start-command: npm ci && npm start # runs in your repo, left running
+      wait-for: http://localhost:3000/health
+      urls: |
+        http://localhost:3000/
+        http://localhost:3000/settings
+      exclude: '#third-party-chat' # optional
+```
+
+For each URL it runs an axe WCAG 2.2 AA scan and a keyboard walk: every tab stop must show a visible
+focus indicator (2.4.7) and Tab must never get stuck (2.1.2). Any failure fails the caller's build,
+and the results table lands in the caller's job summary. `keyboard: false` skips the keyboard walk.
+Pin it with `@<sha>` and pass the same SHA as `gate-ref`.
+
+`node gate/selftest.ts` proves the gate can fail: it must reject a page with planted defects (an
+image with no alt, an unlabelled input, a button with its focus outline removed), report a planted
+keyboard trap, pass a clean page, and fail when no URLs are given.
+
+Run it locally against any page:
+
+```bash
+A11Y_URLS=http://localhost:3000/ npx playwright test -c gate/playwright.config.ts
+```
 
 ## Limits
 

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Gate fixture: keyboard trap</title>
+  </head>
+  <body>
+    <main>
+      <h1>Search</h1>
+      <p><label for="q">Search</label> <input id="q" type="search" /></p>
+      <p><a href="#results">Results</a></p>
+    </main>
+    <!-- Planted keyboard trap (2.1.2): Tab on the search field is swallowed, so focus never leaves. -->
+    <script>
+      document.getElementById('q').addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') e.preventDefault();
+      });
+    </script>
+  </body>
+</html>

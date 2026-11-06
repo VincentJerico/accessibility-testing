@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Gate fixture: planted defects</title>
+    <!-- Planted keyboard defect: the focus outline is removed and nothing replaces it (2.4.7). -->
+    <style>
+      button:focus {
+        outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Newsletter</h1>
+      <!-- Planted axe defects: an image with no alt, an input with no label. -->
+      <img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" width="40" height="40" />
+      <form>
+        <p><input type="email" /></p>
+        <p>
+          <button
+            type="submit"
+            style="min-width: 48px; min-height: 48px; border: 0; background: #eee"
+          >
+            Subscribe
+          </button>
+        </p>
+      </form>
+    </main>
+  </body>
+</html>
