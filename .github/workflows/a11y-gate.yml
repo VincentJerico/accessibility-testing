@@ -1,0 +1,117 @@
+name: Accessibility gate
+
+# Reusable WCAG 2.2 AA gate. Another repo calls it from its own CI:
+#
+#   jobs:
+#     a11y:
+#       uses: VincentJerico/accessibility-testing/.github/workflows/a11y-gate.yml@main
+#       with:
+#         start-command: npm ci && npm start
+#         wait-for: http://localhost:3000/health
+#         urls: |
+#           http://localhost:3000/
+#           http://localhost:3000/settings
+#
+# It fails the caller's build on any axe violation, a tab stop with no visible focus, or a
+# keyboard trap, and writes a summary table to the caller's job summary. See the README.
+
+on:
+  workflow_call:
+    inputs:
+      urls:
+        description: Pages to scan, one per line or comma-separated
+        required: true
+        type: string
+      start-command:
+        description: Command that starts the app, run in the caller's repo root (left running)
+        type: string
+        default: ''
+      wait-for:
+        description: URL to wait for (up to 2 minutes) before scanning
+        type: string
+        default: ''
+      exclude:
+        description: CSS selectors axe should skip, e.g. third-party widgets (comma-separated)
+        type: string
+        default: ''
+      keyboard:
+        description: Also check visible focus on every tab stop and for keyboard traps
+        type: boolean
+        default: true
+      node-version:
+        type: string
+        default: '22'
+      gate-ref:
+        description: Version of this repo to run the gate from; keep it equal to the @ref you call
+        type: string
+        default: main
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: Accessibility gate (WCAG 2.2 AA)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: app
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      # Inputs reach the shell through env, never interpolated into the script.
+      - name: Start the app
+        if: inputs.start-command != ''
+        working-directory: app
+        env:
+          START: ${{ inputs.start-command }}
+        run: nohup bash -c "$START" > "$RUNNER_TEMP/app.log" 2>&1 &
+
+      - name: Wait for the app
+        if: inputs.wait-for != ''
+        env:
+          URL: ${{ inputs.wait-for }}
+        run: |
+          for _ in $(seq 1 60); do
+            curl -fsS "$URL" > /dev/null 2>&1 && exit 0
+            sleep 2
+          done
+          echo "$URL did not answer within 2 minutes. App log:" >&2
+          cat "$RUNNER_TEMP/app.log" >&2 || true
+          exit 1
+
+      - uses: actions/checkout@v7
+        with:
+          repository: VincentJerico/accessibility-testing
+          ref: ${{ inputs.gate-ref }}
+          path: a11y
+      - name: Install the gate
+        working-directory: a11y
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run the gate
+        working-directory: a11y
+        env:
+          A11Y_URLS: ${{ inputs.urls }}
+          A11Y_EXCLUDE: ${{ inputs.exclude }}
+          A11Y_KEYBOARD: ${{ inputs.keyboard }}
+        run: npx playwright test -c gate/playwright.config.ts
+
+      - name: Job summary
+        if: ${{ !cancelled() }}
+        working-directory: a11y
+        run: |
+          [ -f reports/a11y-summary.json ] || exit 0
+          node scripts/report.ts reports/a11y-summary.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: a11y-gate-report
+          path: |
+            a11y/playwright-report/gate/
+            a11y/reports/
+          retention-days: 14
