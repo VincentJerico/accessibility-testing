@@ -13,9 +13,11 @@ export default defineConfig({
   workers: process.env.CI ? 2 : undefined,
   timeout: 45_000,
 
+  // summary-reporter writes reports/a11y-summary.json, which the CI jobs turn into the job summary,
+  // the PR comment, regression issues and the trend page.
   reporter: process.env.CI
-    ? [['github'], ['html', { open: 'never' }], ['list']]
-    : [['html', { open: 'never' }], ['list']],
+    ? [['github'], ['html', { open: 'never' }], ['list'], ['./reporters/summary-reporter.ts']]
+    : [['html', { open: 'never' }], ['list'], ['./reporters/summary-reporter.ts']],
 
   use: {
     ...devices['Desktop Chrome'],
